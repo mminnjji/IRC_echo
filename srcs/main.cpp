@@ -49,7 +49,13 @@ int main (int argc, char **argv)
 		// create server
 		Server server(argv[1], argv[2], time_local);
 
-        server.setupKqueue();
+        #ifdef __linux__
+            server.setupEpoll();
+        #endif
+		
+        #ifdef __APPLE__
+            server.setupKqueue();
+        #endif
 		return (0);
 	}
 	else

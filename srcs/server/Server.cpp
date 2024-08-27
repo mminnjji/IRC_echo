@@ -110,6 +110,159 @@ void Server::setupSocket()
         die("fcntl");
 }
 
+#ifdef __linux__
+void Server::setupEpoll()
+{
+    struct epoll_event ev;
+    struct epoll_event events[MAX_EVENTS];
+    std::string buffer;
+    std::string leftover;
+    Command     cmd;        // 명령어 임시 저장소
+
+    setupSocket();
+    if ((_event_fd = epoll_create1(0)) == -1) 
+    {
+         die("epoll_create1");
+    }
+    // readable | edge-triggered
+    ev.events = EPOLLIN | EPOLLET;
+    ev.data.fd = _server_fd;
+    if (epoll_ctl(_event_fd, EPOLL_CTL_ADD, _server_fd, &ev) == -1) 
+    {
+        die("epoll_ctl: listen_sock");
+    }
+    while (g_shutdown == false)
+    {
+        int n = epoll_wait(_event_fd, events, MAX_EVENTS, -1);
+        if (n == -1)
+        {
+            die("epoll_wait");
+        }
+
+        for (int i = 0; i < n; ++i)
+        {
+            if (events[i].data.fd == _server_fd)
+            {
+                struct sockaddr_in client_addr;
+                socklen_t client_addr_len = sizeof(client_addr);
+
+                int client = accept(_server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+                if (client < 0)
+                {
+                    perror("accept");
+                    continue;
+                }
+                // Set the client socket timeout to 15 seconds
+                struct timeval tv = {15, 0};
+                if (setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) < 0)
+                    die("setsockopt");
+                // Set the client socket to non-blocking mode
+                if (fcntl(client, F_SETFL, O_NONBLOCK) == -1)
+                    die("fcntl");
+                // Add the new client socket to the epoll instance
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = client;
+                if (epoll_ctl(_event_fd, EPOLL_CTL_ADD, client, &ev) == -1)
+                {
+                    die("epoll_ctl: client");
+                }
+                Client new_client(client, _password, this);
+                _clients.insert(std::pair<int, Client>(client, new_client)); // 클라이언트 클래스 추가
+            }
+            else
+            {
+                int client = events[i].data.fd;
+                buffer.resize(BUFFER_SIZE);
+                
+                ssize_t bytes_received = recv(client, &buffer[0], BUFFER_SIZE - 1, 0);
+                if (bytes_received < 0)
+                {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK)
+                        printf("Client timeout\n");
+                    else
+                        perror("recv");
+                    epoll_ctl(_event_fd, EPOLL_CTL_DEL, client, NULL);
+                       close(client);
+                    std::map<int, Client>::iterator it = _clients.find(client);
+                    if (it != _clients.end()) {
+                        _clients.erase(it);
+                    }
+                }
+                else if (bytes_received == 0)
+                {
+                    printf("Client closed connection.\n");
+                    epoll_ctl(_event_fd, EPOLL_CTL_DEL, client, NULL);
+                    close(client);
+                    std::map<int, Client>::iterator it = _clients.find(client);
+                    if (it != _clients.end()) {
+                        _clients.erase(it);
+                    }
+                }
+                else
+                {
+                    buffer.resize(bytes_received);
+                    std::string data = leftover + buffer;
+                    leftover.clear();
+
+                    size_t pos;
+                    std::map<int, Client>::iterator it = _clients.find(client);
+                    Client &tmp_client = it->second;
+                    if (it != _clients.end())
+                        tmp_client = it->second;
+                    else
+                        continue; // 이게 가능한 얘긴가?
+                    while ((pos = data.find("\r\n")) != std::string::npos || (pos = data.find("\n")) != std::string::npos)
+                    {
+                        
+                        std::string message = data.substr(0, pos);
+                        printf("Received message: %s\n", message.c_str());
+
+                        // Process the message ////////////////////////////////
+                        ///////////////////////////////////////////////////////
+                        cmd.clearCommand();
+                        cmd.parseCommand(message);
+                        cmd.showCommand();
+                        tmp_client.execCommand(cmd);
+                        // ssize_t sent_bytes = send(client, message.c_str(), message.size(), 0);
+                        // printf("Sent %ld bytes\n", sent_bytes);
+                        // if (sent_bytes < 0)
+                        // {
+                        //     perror("send");
+                        // }
+                        // else if (sent_bytes != static_cast<ssize_t>(message.size()))
+                        // {
+                        //     fprintf(stderr, "Warning: Not all data was sent.\n");
+                        // }
+                        // end of processing //////////////////////////////////
+                        ///////////////////////////////////////////////////////
+                        data.erase(0, pos + (data[pos] == '\r' ? 2 : 1));  // Remove the processed message
+                    }
+                    // Remaining data is saved in leftover
+                    leftover = data;
+                }
+            }
+        }
+    }
+    stopEpoll(); // Clean up
+}
+
+void Server::stopEpoll()
+{
+    epoll_ctl(_event_fd, EPOLL_CTL_DEL, _server_fd, NULL);
+    close(_server_fd);
+    std::map<int, Client>::iterator it;
+    for (it = _clients.begin(); it != _clients.end(); ++it) {
+        int client_fd = it->first;
+        epoll_ctl(_event_fd, EPOLL_CTL_DEL, client_fd, NULL);
+        close(client_fd);
+    }
+    close(_event_fd);
+}
+#endif
+
+
+#ifdef __APPLE__
+
 void Server::setupKqueue()
 {
     struct kevent change_list;
@@ -276,3 +429,4 @@ void Server::stopKqueue()
     }
     close(_event_fd);
 }
+#endif

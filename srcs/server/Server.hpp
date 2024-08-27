@@ -67,8 +67,16 @@ class Server
         // Server setup
         void setupSocket();
 
+		#ifdef __linux__
+        void setupEpoll();
+        void stopEpoll();
+        #endif
+		
+        #ifdef __APPLE__
         void setupKqueue();
         void stopKqueue();
+        #endif
+
         //getter and setter
         std::map<int, Client> &getClients();
 		std::map<std::string, Channel>  &getChannels();
