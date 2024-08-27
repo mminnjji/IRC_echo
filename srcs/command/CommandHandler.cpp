@@ -18,7 +18,7 @@ CommandHandler &CommandHandler::operator=(const CommandHandler &other)
     return (*this);
 }
 
-void CommandHandler::execute(Command &cmd, Client &client)
+void CommandHandler::execute(Command &cmd, Client &client, Server &server)
 {
     std::string command = cmd.getCommand();
     _reply = "";
@@ -54,48 +54,11 @@ void CommandHandler::execute(Command &cmd, Client &client)
         }
         else if (command == "JOIN")
         {
-			std::string	channel_name;
-			std::string	mode;
-			size_t		comma_pos;
-			size_t		mode_pos;
-
-            if (cmd.getParams().size() < 1)
-            {
-				reply(461, "JOIN", "Not enough parameters");
-                return;
-            }
-			while ((comma_pos = cmd.getParams()[1].find(',')) != std::string::npos)
-			{
-				if (comma_pos > 0)
-				{
-					channel_name = command.substr(0, comma_pos);
-					command.erase(0, comma_pos + 1);
-				}
-				if (cmd.getParams().size() > 1)
-				{
-					mode_pos = cmd.getParams()[2].find(',');
-					if (mode_pos > 0)
-					{
-						mode = command.substr(0, mode_pos);
-						command.erase(0, mode_pos + 1);
-					}
-				}
-				// 1. 채널 없으면 만들고 있으면 invite
-				// 2. ban 리스트에 nickname, username, hostname 있는지 비교
-				// 3. 비밀번호 확인?
-				 
-				// _tem.push_back(param[0]);
-				// _cmd.setCommand("", client.get_hostname(), "JOIN", _tem);
-				// _message = _cmd.deparseCommand();
-				// _message += com332(client, _cmd);
-				// _message += com333(client, _cmd);
-				// _message += com353(client, _cmd);
-				// _message += com366(client, _cmd);
-			}
+			join(cmd, client, server);
         }
         else if (command == "PART")
         {
-            // PART command
+            part(cmd, client, server.getChannels());
         }
         else if (command == "MODE")
         {
@@ -103,11 +66,11 @@ void CommandHandler::execute(Command &cmd, Client &client)
         }
         else if (command == "TOPIC")
         {
-            // TOPIC command
+            topic(cmd, client, server);
         }
         else if (command == "NAMES")
         {
-            // NAMES command
+            names(cmd, client, server);
         }
         else if (command == "LIST")
         {
@@ -158,7 +121,8 @@ void CommandHandler::execute(Command &cmd, Client &client)
             // ERR_UNKNOWNCOMMAND
         }
     }
-    client.showClient();
+    // client.showClient();
+	std::cout << "\033[01m\033[33mmessage to client " << client.getSocket_fd() << ": "  << _reply << "\033[0m" << std::endl;
     send(client.getSocket_fd(), _reply.c_str(), _reply.length(), 0);
 }
 
@@ -175,6 +139,24 @@ void CommandHandler::reply(int numeric, std::string param, std::string message)
         head = ss.str();
     reply = head + " " + param + " " + tail;
     _reply += reply;
+}
+
+void CommandHandler::reply(std::string const &command, std::string const &message)
+{
+    _reply += ":irc.local " + command + " :" + message + "\r\n";
+}
+
+void CommandHandler::reply(std::string const &command, std::vector<std::string> const &message)
+{
+    _reply += ":irc.local " + command;
+    for (size_t i = 0; i < message.size(); i++)
+    {
+        _reply += " ";
+        if (i == message.size() - 1)
+            _reply += ":";
+        _reply += message[i];
+    }
+    _reply += "\r\n";
 }
 
 
@@ -234,16 +216,18 @@ void CommandHandler::nick(Command &cmd, Client &client)
 
 void CommandHandler::user(Command &cmd, Client &client)
 {
-    if (client.getIs_passed() == false)
-    {
-        if (client.getTry_password() == client.getPassword())
-            client.setIs_passed(true);
-        else
-        {
-            reply(464, "","Password incorrect");
-            return;
-        }
-    }
+    // if (client.getIs_passed() == false)
+    // {
+    //     if (client.getTry_password() == client.getPassword())
+    //         client.setIs_passed(true);
+    //     else
+    //     {
+    //         reply(464, "","Password incorrect");
+    //         return;
+    //     }
+    // }
+    client.setIs_passed(true);
+
     if (cmd.getParams().size() < 4)
     {
         reply(461, "USER", "Not enough parameters");
@@ -315,8 +299,8 @@ void CommandHandler::user(Command &cmd, Client &client)
 void CommandHandler::welcome(Client &client)
 {
     std::string server_name = client.getServer()->getServerName();
-    reply(001, "", "Welcome to the " + server_name + " Network, " + client.getNickname() + \
-    "!" + client.getUsername() + "@" + client.getHostname());
+    com001(client, server_name);
+    // reply(001, "", "Welcome to the " + server_name + " Network, " + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname());
     reply(002, "", "Your host is " + server_name + ", running version " + "ircserv 1.0");
     reply(003, "", "This server was created sometime"); // need fix
     reply(004, server_name + " ircserv 1.0 abhi bhi", "ao");
@@ -335,3 +319,4 @@ void CommandHandler::welcome(Client &client)
     reply(372, "", ":- Welcome to the " + server_name + " IRC Network");
     reply(376, "", "End of /MOTD command");
 }
+

@@ -44,7 +44,9 @@ class Client
 		~Client();
 		Client(const Client &other);
 		Client &operator=(const Client &other);	
-		void	execCommand(Command &cmd);
+		void	execCommand(Command &cmd, Server &server);
+
+		std::string	getSource() const; // client 의 정보를 source 로 만들어주는 함수
 
 		/// Setters and Getters
 		void	setTry_password(std::string password);

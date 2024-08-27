@@ -23,6 +23,8 @@
 # include "../command/Command.hpp"
 # include "../command/CommandHandler.hpp"
 # include "../client/Client.hpp"
+#include "../channel/Channel.hpp"
+
 
 # ifdef __APPLE__
 #  include <sys/event.h>
@@ -53,6 +55,7 @@ class Server
         std::string     _server_name; // 서버 이름
         std::map<int, Client> _clients; // 서버에 연결된 클라이언트를 관리하는 맵 
 		//-> 각 클라이언트는 파일디스크립터 int를 키로 가지는 Client 객체
+		std::map<std::string, Channel> _channels;
 
     public:
         // Orthodox Canonical Form
@@ -68,6 +71,7 @@ class Server
         void stopKqueue();
         //getter and setter
         std::map<int, Client> &getClients();
+		std::map<std::string, Channel>  &getChannels();
         std::set<std::string> getNicknames();
         std::string getPort();
         std::string getServerName();

@@ -44,11 +44,18 @@ Client::Client(int fd, std::string password, Server *server)
     _socket_fd = fd;
 }
 
-void Client::execCommand(Command &cmd)
+void Client::execCommand(Command &cmd, Server &server)
 {
     CommandHandler handler(this);
-    handler.execute(cmd, *this);
+    handler.execute(cmd, *this, server);
 }
+
+std::string	Client::getSource() const
+{
+	std::string source = ":" + _nickname + "!" + _username + "@" + _hostname;
+	return (source);
+}
+
 
 //////setters and getters
 
