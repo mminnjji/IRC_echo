@@ -33,7 +33,7 @@ class CommandHandler
         void    part(Command &cmd, Client &client, std::map<std::string, Channel> &channels);
         void	names(Command const &cmd, Client const &client, Server &server);
         void    topic(Command const &cmd, Client const &client, Server &server);
-
+		void	privmsg(Command const &cmd, Client const &client, Server &server);
         void    com001(Client const &client, std::string const &server_name);               //RPL_WELCOME 
         void    com461(std::string const &nickname, std::string const &cmd);                //ERR_NEEDMOREPARAMS
         void    com353(Server &server, Channel const &channels);                            //RPL_NAMREPLY
