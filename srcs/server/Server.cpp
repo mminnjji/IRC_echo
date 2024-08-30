@@ -222,7 +222,7 @@ void Server::setupEpoll()
                         cmd.clearCommand();
                         cmd.parseCommand(message);
                         cmd.showCommand();
-                        tmp_client.execCommand(cmd);
+                        tmp_client.execCommand(cmd, *this);
                         // ssize_t sent_bytes = send(client, message.c_str(), message.size(), 0);
                         // printf("Sent %ld bytes\n", sent_bytes);
                         // if (sent_bytes < 0)
