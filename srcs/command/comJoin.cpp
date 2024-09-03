@@ -50,14 +50,14 @@ void CommandHandler::join(Command &cmd, Client &client, Server &server)
 
 		if (channels.find(channel_name) != channels.end()) // 기존에 있는 채널일 때
 		{
-			if (channels[channel_name]->addClient(client) == -1)
+			if (channels[channel_name]->addClient(*client) == -1)
 				continue;
 		}
 		else
 		{
 			Channel	*tem = new Channel(channel_name);
 			channels.insert(std::make_pair(channel_name, tem)); // 채널 새로 만듦
-			if (channels[channel_name]->addClient(client) == -1)
+			if (channels[channel_name]->addClient(*client) == -1)
 				continue;
 		}
 		if (channels.find(channel_name) != channels.end() && channels[channel_name]->getChannelTopic() != "")
