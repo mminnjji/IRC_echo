@@ -150,7 +150,7 @@ bool Channel::isOperator(const Client &client) const
 Client* Channel::getClient(const std::string &nickname)
 {
     for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
-        if (it->second.getNickname() == nickname) {
+        if (it->second->getNickname() == nickname) {
             return (it->second);
         }
     }
