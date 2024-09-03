@@ -55,14 +55,15 @@ bool	Channel::isMember(int fd) const
 	return (false);
 }
 
-int Channel::addClient(Client client)
+int Channel::addClient(Client* client)  // 포인터로 변경
 {
-    int fd = client.getSocket_fd();
+    int fd = client->getSocket_fd();
 
     if (_fdlist.empty()) {
         _clients.clear();
-    }
+	}
 
+    // _fdlist에 이미 fd가 존재하는지 확인
     for (int i = 0; i < (int)_fdlist.size(); i++) {
         if (_fdlist[i] == fd) {
             return -1;
@@ -70,10 +71,11 @@ int Channel::addClient(Client client)
     }
 
     _fdlist.push_back(fd);
-    _clients[fd] = client;
+    _clients[fd] = client;  // 클라이언트 포인터를 맵에 추가
 
     return 0;
 }
+
 
 
 void	Channel::removeClient(int fd)

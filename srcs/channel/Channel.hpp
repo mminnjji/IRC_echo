@@ -5,6 +5,7 @@
 # include <vector>
 # include <iostream>
 # include <set>
+# include <map>
 
 class Server;
 class Client;
@@ -17,7 +18,7 @@ class Channel
 		time_t				_topic_time;
 		std::set<std::string> _operators;
 		std::vector<int>	_fdlist;
-		std::map<int, Client> _clients;
+		std::map<int, Client*> _clients;
 
 	public :
 		Channel();
@@ -34,7 +35,7 @@ class Channel
 
 		void	setChannelTopic(std::string name);
 		bool	isMember(int fd) const;
-		int		addClient(Client client);
+		int		addClient(Client *client);
 		void	removeClient(int fd);
 
 		void 	setOperator(Client &client, bool enable);
