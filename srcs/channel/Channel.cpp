@@ -55,16 +55,26 @@ bool	Channel::isMember(int fd) const
 	return (false);
 }
 
-int	Channel::addClient(Client client)
+int Channel::addClient(Client client)
 {
-	for (int i=0; i < (int)_fdlist.size() ; i++)
-	{
-		if (_fdlist[i] == client.getSocket_fd())
-			return (-1);
-	}
-	_fdlist.push_back(client.getSocket_fd());
-	return (0);
+    int fd = client.getSocket_fd();
+
+    if (_fdlist.empty()) {
+        _clients.clear();
+    }
+
+    for (int i = 0; i < (int)_fdlist.size(); i++) {
+        if (_fdlist[i] == fd) {
+            return -1;
+        }
+    }
+
+    _fdlist.push_back(fd);
+    _clients[fd] = client;
+
+    return 0;
 }
+
 
 void	Channel::removeClient(int fd)
 {
@@ -95,7 +105,6 @@ std::string	Channel::getChannelMembers(Server &server) const   //chan operator ì
 	return (ret);
 }
 
-
 void	Channel::messageToMembers(Client const &client, std::string cmd, std::string param)
 {
 	std::string msg;
@@ -111,8 +120,6 @@ void	Channel::messageToMembers(Client const &client, std::string cmd, std::strin
 	}
 }
 
-
-
 void	Channel::showChannelMembers(Server &server)  // for Debug
 {
 	std::cout << _channel_name << ": ";
@@ -123,4 +130,27 @@ void	Channel::showChannelMembers(Server &server)  // for Debug
 		std::cout << server.getClients().at(_fdlist[i]).getNickname() << " ";
 	}
 	std::cout << std::endl;
+}
+
+void Channel::setOperator(Client &client, bool enable)
+{
+    if (enable)
+        _operators.insert(client.getNickname());
+    else
+        _operators.erase(client.getNickname());
+}
+
+bool Channel::isOperator(const Client &client) const
+{
+	return _operators.find(client.getNickname()) != _operators.end();
+}
+
+Client* Channel::getClient(const std::string &nickname)
+{
+    for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->second.getNickname() == nickname) {
+            return &(it->second);
+        }
+    }
+    return NULL;
 }

@@ -56,7 +56,6 @@ std::string	Client::getSource() const
 	return (source);
 }
 
-
 //////setters and getters
 
 void Client::setTry_password(std::string password)
@@ -187,6 +186,14 @@ time_t Client::getEstablished_time() const
 time_t Client::getLast_active_time() const
 {
     return _last_active_time;
+}
+
+void Client::setInvisibleMode(bool enable)
+{
+    if (enable)
+        _mode += 'i';
+    else
+        _mode.erase(std::remove(_mode.begin(), _mode.end(), 'i'), _mode.end());
 }
 
 //debug

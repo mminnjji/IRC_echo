@@ -1,7 +1,7 @@
 #include "./server/Server.hpp"
 
 // global variable to check if the server is shutting down
-volatile sig_atomic_t g_shutdown = false; 
+volatile sig_atomic_t g_shutdown = false;
 
 void die(const char* msg)
 {
@@ -25,7 +25,7 @@ static void	signal_handler(int signal)
 	if (g_shutdown == false && signal == SIGTERM)
 	{
 		//std::cout << "Shutting down server..." << std::endl;
-		g_shutdown = true; // sigterm 일 때 shutdown -> 클라이언트 응답 수신 종료
+		g_shutdown = true;
 	}
 }
 
@@ -33,9 +33,8 @@ int main (int argc, char **argv)
 {
 	if (argc == 3)
 	{
-		// 운영체제 확인
         check_os();
-		// 현재시간 설정
+		// get current time
 		time_t time_raw = {0};
 		tm *time_local;
 
@@ -43,16 +42,16 @@ int main (int argc, char **argv)
 		time_local = localtime(&time_raw);
 
 		// handle signals
-		signal(SIGINT, SIG_IGN); // SIGINT ignore
-		signal(SIGTERM, signal_handler); // SIGTERM 일 때 signal_handler 로 전송
+		signal(SIGINT, SIG_IGN);
+		signal(SIGTERM, signal_handler);
 
 		// create server
 		Server server(argv[1], argv[2], time_local);
 
+		// launch server
         #ifdef __linux__
             server.setupEpoll();
         #endif
-		
         #ifdef __APPLE__
             server.setupKqueue();
         #endif
